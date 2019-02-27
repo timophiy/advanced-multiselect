@@ -1,25 +1,32 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+import AdvancedSelect from './components/AdvancedSelect';
 import './App.css';
+
+// some data for testing
+const options = [
+  { value: 'chocolate', label: 'Chocolate' },
+  { value: 'strawberry', label: 'Strawberry' },
+  { value: 'vanilla', label: 'Vanilla' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'coffee', label: 'Coffee' },
+  { value: 'cocoa', label: 'Cocoa' },
+  { value: 'orange', label: 'Orange' },
+  { value: 'apple', label: 'Apple' },
+  { value: 'tomato', label: 'Tomato' },
+  { value: 'pen', label: 'Pen' },
+  { value: 'pencil', label: 'Pencil' },
+  { value: 'paper', label: 'Paper' }
+];
 
 class App extends Component {
   render() {
     return (
       <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.tsx</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+        <AdvancedSelect
+          options={options}
+          mode="multiple"
+          maxTagCount={2}
+          placeholder="Please select" />
       </div>
     );
   }
