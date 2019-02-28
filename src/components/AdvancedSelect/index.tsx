@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from 'react';
-import { equals, isEmpty } from 'ramda';
+import { isEmpty, pluck, sort, map, T, dissoc, curry } from 'ramda';
 import 'antd/dist/antd.css';
 import {
   StyledSelect,
@@ -16,7 +16,11 @@ export interface IOption {
 }
 
 export interface IState {
-  selected: string[]
+  selected: {
+    [key: string]: boolean,
+  };
+  isOpen: boolean,
+  searched: string
 }
 
 export interface IProps {
@@ -27,36 +31,76 @@ export interface IProps {
   style?: object
 }
 
+const toKeysMap =
+  (list, value = false) =>
+    list.reduce((acc, key) => {
+      acc[key] = value;
+
+      return acc;
+    }, {});
+
+const dissocAll = curry(
+  (keys: any, obj) =>
+    Object.entries(obj)
+      .reduce((acc, [key, value]) => {
+        if (!keys.includes(key)) {
+          acc[key] = value;
+        }
+
+        return acc;
+      }, {})
+);
+
 class AdvancedSelect extends Component<IProps, IState> {
   state = {
-    selected: []
+    selected: {},
+    searched: '',
+    isOpen: false
   };
 
-  extractValues = (array: IOption[]) => array.map(o => o.value);
+  SORTED = [];
 
-  OPTIONS = this.extractValues(this.props.options);
+  handleSelect = key => {
+    this.setState(({ selected }) => ({
+      selected: {
+        ...selected,
+        [key]: false
+      }
+    }));
+  };
 
-  handleChange = (value: any, option: any) => {
-    console.log(option);
-
-    this.setState({
-      selected: value
-    });
+  handleDeselect = key => {
+    this.setState(({ selected }) => ({
+      selected: dissoc(key, selected)
+    }));
   };
 
   handleGroupSelect = (type: string) => {
-    if (type === 'select') {
-      this.setState({
-        selected: this.OPTIONS
-      });
-    } else if (type === 'deselect') {
-      this.setState({
-        selected: []
-      });
-    }
+    this.setState(prevState => ({
+      selected:
+        type === 'select'
+          ? {
+            ...prevState.selected,
+            ...toKeysMap(pluck('value', this.SORTED))
+          }
+          : !prevState.searched
+            ? {}
+            : dissocAll(
+              Object.keys(toKeysMap(pluck('value', this.SORTED))),
+              prevState.selected
+            ),
+      searched: ''
+    }));
   };
 
-  dropdownRender = (menu?: ReactNode) => (
+  onSelectBlur = () => {
+    this.setState(prevState => ({
+      isOpen: false,
+      selected: map(T, prevState.selected)
+    }));
+  };
+
+  dropdownRender = (menu: ReactNode) => (
     <div>
       {menu}
       <StyledDivider />
@@ -68,43 +112,58 @@ class AdvancedSelect extends Component<IProps, IState> {
               <StyledIcon type="plus" />
               Select All
             </SelectBtn>
-          ) : equals(this.OPTIONS, this.state.selected)
-            ? (
+          ) : Object.keys(this.state.selected).length === this.props.options.length
+          ? (
+            <SelectBtn
+              onClick={() => this.handleGroupSelect('deselect')}>
+              <StyledIcon type="cross" />
+              Deselect All
+            </SelectBtn>
+          ) : (
+            <BtnContainer>
+              <SelectBtn
+                onClick={() => this.handleGroupSelect('select')}>
+                <StyledIcon type="plus" />
+                Select All
+              </SelectBtn>
               <SelectBtn
                 onClick={() => this.handleGroupSelect('deselect')}>
                 <StyledIcon type="cross" />
                 Deselect All
               </SelectBtn>
-            ) : (
-              <BtnContainer>
-                <SelectBtn
-                  onClick={() => this.handleGroupSelect('select')}>
-                  <StyledIcon type="plus" />
-                  Select All
-                </SelectBtn>
-                <SelectBtn
-                  onClick={() => this.handleGroupSelect('deselect')}>
-                  <StyledIcon type="cross" />
-                  Deselect All
-                </SelectBtn>
-              </BtnContainer>
-            )
+            </BtnContainer>
+          )
       }
     </div>
   );
 
   render() {
-    const { options } = this.props;
-    const { selected } = this.state;
+    const { selected, isOpen } = this.state;
+
+    this.SORTED =
+      sort(({ value }) =>
+          !this.state.selected[value] ? -1 : 0,
+        !this.state.searched ? this.props.options :
+          this.props.options.filter(({ value }) =>
+            value.toLowerCase()
+              .includes(this.state.searched)
+          )
+      );
 
     return (
-      <div onMouseDown={(e) => { e.preventDefault(); return false; }} >
+      <div onMouseDown={e => e.preventDefault()}>
         <StyledSelect
           {...this.props}
-          value={selected}
-          onChange={this.handleChange}
+          open={isOpen}
+          onFocus={() => this.setState({ isOpen: true })}
+          onChange={console.log}
+          onSearch={val => this.setState({ searched: val })}
+          onBlur={this.onSelectBlur}
+          onSelect={this.handleSelect}
+          onDeselect={this.handleDeselect}
+          value={Object.keys(selected)}
           dropdownRender={this.dropdownRender}>
-            {options.map(({ value, label }: IOption) =>
+            {this.SORTED.map(({ value, label }: IOption) =>
               <StyledOption key={value} value={value}>{label}</StyledOption>
             )}
         </StyledSelect>

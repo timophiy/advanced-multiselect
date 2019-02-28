@@ -2,8 +2,7 @@ import styled from 'styled-components';
 import { Select, Divider, Icon } from 'antd';
 
 export const StyledSelect = styled(Select)`
-  max-width: 800px
-  min-width: 400px
+  width: ${({ style }) => style && style.width ? style.width : '400px'}
   margin: 10px
 `;
 
